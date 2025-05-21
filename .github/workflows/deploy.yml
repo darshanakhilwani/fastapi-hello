@@ -27,15 +27,32 @@ jobs:
           source: "."
           target: "~/app"
 
-      - name: SSH into VM and run FastAPI
+      - name: SSH into VM and reload FastAPI via pm2
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.VM_HOST }}
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.VM_SSH_KEY }}
           script: |
+           # Update and install dependencies
             sudo apt update
             sudo apt install -y python3-pip
-            pip3 install -r ~/app/requirements.txt
-            pkill uvicorn || true
-            nohup uvicorn main:app --host 0.0.0. --port 80 > uvicorn.log 2>&1 & disown
+
+             # Install pm2 globally if not already installed
+            sudo npm install -g pm2
+
+           
+             # Navigate to your app folder
+             cd ~/app
+
+            # Install Python packages
+            pip3 install -r requirements.txt
+
+              # Start or reload the FastAPI app using pm2
+              pm2 start "uvicorn main:app --host 0.0.0.0 --port 80" --name fastapi || pm2 reload fastapi
+
+              # Save pm2 process list so it persists after reboot
+              pm2 save
+
+              # Auto-start pm2 on boot
+              pm2 startup | tail -n 1 | bash
