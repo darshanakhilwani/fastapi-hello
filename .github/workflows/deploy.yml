@@ -34,25 +34,16 @@ jobs:
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.VM_SSH_KEY }}
           script: |
-           # Update and install dependencies
             sudo apt update
-            sudo apt install -y python3-pip
+            sudo apt install -y nodejs npm python3-pip
 
-             # Install pm2 globally if not already installed
             sudo npm install -g pm2
 
-           
-             # Navigate to your app folder
-             cd ~/app
-
-            # Install Python packages
+            cd ~/app
             pip3 install -r requirements.txt
 
-              # Start or reload the FastAPI app using pm2
-              pm2 start "uvicorn main:app --host 0.0.0.0 --port 80" --name fastapi || pm2 reload fastapi
+            pm2 start "uvicorn main:app --host 0.0.0.0 --port 80" --name fastapi || pm2 reload fastapi
+            pm2 save
 
-              # Save pm2 process list so it persists after reboot
-              pm2 save
-
-              # Auto-start pm2 on boot
-              pm2 startup | tail -n 1 | bash
+            # Automatically configure pm2 to start on boot
+            sudo env PATH=$PATH:/usr/bin pm2 startup systemd -u azureuser --hp /home/azureuser
